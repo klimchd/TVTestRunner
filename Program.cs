@@ -11,6 +11,7 @@ namespace TVTestRunner
            .Build();
 
             var inputs = config.GetSection("Inputs").Get<List<Input>>();
+            var delayBetweenTestsMs = config.GetSection("DelayBetweenTestsMs").Get<int>();
             Console.WriteLine("Loaded Inputs from appsettings.json:");
             foreach (var input in inputs)
             {
@@ -24,7 +25,7 @@ namespace TVTestRunner
             Console.WriteLine($"Total number of combinations: {totalCombinations}");
 
             var tr = new TestRunner();
-            await tr.Init();
+            await tr.Init(delayBetweenTestsMs);
             await tr.Run(inputValues);
         }
     }

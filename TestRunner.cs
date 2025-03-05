@@ -4,11 +4,16 @@ namespace TVTestRunner
 {
     internal class TestRunner
     {
-        IPage page;
-        StreamWriter writer = new StreamWriter($"{DateTime.UtcNow.ToString("yyyyMMdd_HHmmss")}-results.csv");
-        List<string> resultLables = new List<string> { "Total P&L", "Max equity drawdown", "Total trades", "Profitable trades", "Profit factor" };
-        public async Task Init()
+        private int delayBetweenTestsMs;
+
+        private IPage page;
+        private StreamWriter writer = new StreamWriter($"{DateTime.UtcNow.ToString("yyyyMMdd_HHmmss")}-results.csv");
+        private List<string> resultLables = new List<string> { "Total P&L", "Max equity drawdown", "Total trades", "Profitable trades", "Profit factor" };
+
+        public async Task Init(int delayBetweenTestsMs)
         {
+            this.delayBetweenTestsMs = delayBetweenTestsMs;
+
             Console.WriteLine("Connecting to the Chrome instance...");
             var pl = await Playwright.CreateAsync();
             var browser = await pl.Chromium.ConnectOverCDPAsync("http://localhost:9222");
@@ -94,6 +99,7 @@ namespace TVTestRunner
             Console.WriteLine(resultsRow);
             writer.WriteLine(resultsRow);
             writer.Flush();
+            await Task.Delay(delayBetweenTestsMs);
         }
 
         private static async Task FillInput(ILocator settingsDialog, KeyValuePair<string, double> input)
