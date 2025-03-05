@@ -15,17 +15,40 @@ namespace TVTestRunner
             this.delayBetweenTestsMs = delayBetweenTestsMs;
 
             Console.WriteLine("Connecting to the Chrome instance...");
-            var pl = await Playwright.CreateAsync();
-            var browser = await pl.Chromium.ConnectOverCDPAsync("http://localhost:9222");
-            var ctx = browser.Contexts[0];
+            try
+            {
+                var pl = await Playwright.CreateAsync();
+                var browser = await pl.Chromium.ConnectOverCDPAsync("http://localhost:9222");
+                Console.WriteLine("  Connected.");
 
-            page = ctx.Pages.First(p => p.Url.Contains("www.tradingview.com"));
-            Console.WriteLine("Found tradingview page:");
-            Console.WriteLine(page.Url);
+                foreach (var ctx in browser.Contexts)
+                {
+                    page = ctx.Pages?.FirstOrDefault(p => p.Url.Contains("www.tradingview.com"));
+                    if (page != null)
+                    {
+                        break;
+                    }
+                }
+            }
+            catch (PlaywrightException ex)
+            {
+                Console.WriteLine("Couldn't connect to Chrome. Make sure you are running Chrome with parameter: --remote-debugging-port=9222");
+                Console.WriteLine(ex.Message);
+            }
+
         }
 
         public async Task Run(Dictionary<string, double[]> inputValues)
         {
+            if (page == null)
+            {
+                Console.WriteLine("No tradingview page found. Make sure it's opened in Chrome.");
+                return;
+            }
+
+            Console.WriteLine("Found tradingview page:");
+            Console.WriteLine(page.Url);
+
             string header = string.Join(',', inputValues.Keys.Concat(resultLables));
             Console.WriteLine(header);
             writer.WriteLine(header);
@@ -94,7 +117,7 @@ namespace TVTestRunner
             }
 
             var resultsRow = string.Join(',', inputs.Values) + "," + string.Join(",", results);
-            Console.WriteLine(resultsRow);
+            Console.WriteLine($"{DateTime.Now.ToLongTimeString()} {resultsRow}");
             writer.WriteLine(resultsRow);
             writer.Flush();
             await Task.Delay(delayBetweenTestsMs);
