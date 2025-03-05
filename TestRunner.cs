@@ -45,7 +45,7 @@ namespace TVTestRunner
             }
 
             string key = keys[index];
-            foreach (int value in inputDict[key])
+            foreach (var value in inputDict[key])
             {
                 current[key] = value;
                 await GenerateCombinations(inputDict, current, keys, index + 1);
@@ -56,9 +56,7 @@ namespace TVTestRunner
         {
             var bottomArea = page.Locator("#bottom-area");
 
-            //looks like the id is changing
-            //var strategyDrop = bottomArea.Locator("#\\:rk\\:");
-            var strategyDrop = bottomArea.GetByRole(AriaRole.Button).First;
+            var strategyReportMenu = bottomArea.Locator("button[data-strategy-title$='report']");
             //handle the case when strategy tester pane is minimized
             //if (await strategyDrop.IsHiddenAsync())
             //{
@@ -66,7 +64,7 @@ namespace TVTestRunner
             //    //await page.GetByRole(AriaRole.Button, new() { Name = "Open Strategy Tester" }).ClickAsync();
             //}
 
-            await strategyDrop.ClickAsync();
+            await strategyReportMenu.ClickAsync();
 
             var settingsBtn = page.GetByRole(AriaRole.Menuitem, new() { Name = "Settings…" }).First;
             await settingsBtn.ClickAsync();
