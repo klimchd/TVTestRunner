@@ -1,25 +1,26 @@
 ﻿using Microsoft.Playwright;
+using System.Diagnostics;
 
 namespace TVTestRunner
 {
     internal class TestRunner
     {
-        private int delayBetweenTestsMs;
+        private int minIterationTimeMs;
 
         private IPage page;
         private StreamWriter writer = new StreamWriter($"{DateTime.UtcNow.ToString("yyyyMMdd_HHmmss")}-results.csv");
         private List<string> resultLables = new List<string> { "Total P&L", "Max equity drawdown", "Total trades", "Profitable trades", "Profit factor" };
 
-        public async Task Init(int delayBetweenTestsMs)
+        public async Task Init(int minIterationTimeMs)
         {
-            this.delayBetweenTestsMs = delayBetweenTestsMs;
+            this.minIterationTimeMs = minIterationTimeMs;
 
             Console.WriteLine("Connecting to the Chrome instance...");
             try
             {
                 var pl = await Playwright.CreateAsync();
                 var browser = await pl.Chromium.ConnectOverCDPAsync("http://localhost:9222");
-                Console.WriteLine("  Connected.");
+                Console.WriteLine("Connected.");
 
                 foreach (var ctx in browser.Contexts)
                 {
@@ -77,6 +78,8 @@ namespace TVTestRunner
 
         public async Task RunIteration(Dictionary<string, double> inputs)
         {
+            Stopwatch stopwatch = Stopwatch.StartNew();
+
             var bottomArea = page.Locator("#bottom-area");
 
             var strategyReportMenu = bottomArea.Locator("button[data-strategy-title$='report']");
@@ -117,10 +120,18 @@ namespace TVTestRunner
             }
 
             var resultsRow = string.Join(',', inputs.Values) + "," + string.Join(",", results);
-            Console.WriteLine($"{DateTime.Now.ToLongTimeString()} {resultsRow}");
+            Console.WriteLine(resultsRow);
             writer.WriteLine(resultsRow);
             writer.Flush();
-            await Task.Delay(delayBetweenTestsMs);
+
+            stopwatch.Stop();
+            Console.WriteLine($"{DateTime.Now.ToLongTimeString()}\t {stopwatch.ElapsedMilliseconds} ms");
+            // checking if the iteration was too fast and need to wait to avoid TV ban
+            var delayMs = minIterationTimeMs - (int)stopwatch.ElapsedMilliseconds;
+            if (delayMs > 0)
+            {
+                await Task.Delay(delayMs);
+            }
         }
 
         private static async Task FillInput(ILocator settingsDialog, KeyValuePair<string, double> input)
